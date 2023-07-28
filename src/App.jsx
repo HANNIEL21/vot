@@ -1,10 +1,8 @@
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Root from './pages/Root';
-import Home from './pages/Home';
-import Error from './pages/Error';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import {Root, Home, Error, Login, Signup} from './Export';
+
+
 function App() {
   return (
     <div className="App">

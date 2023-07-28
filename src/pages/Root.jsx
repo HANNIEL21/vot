@@ -87,7 +87,7 @@ const Root = () => {
                                         </div>
                                         <div className="modal-footer border-0">
                                             <button type="button" className="btn btn-danger text-uppercase fw-bold" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="button" className="btn btn-primary text-uppercase fw-bold" onClick={() => joinPoll(name, pollId)}>join</button>
+                                            <button type="button" className="btn btn-primary text-uppercase fw-bold" onClick={() => joinPoll(pollId, name)}>join</button>
                                         </div>
                                     </div>
                                 </div>

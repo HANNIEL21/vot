@@ -4,6 +4,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Error from "./pages/Error";
+import ChartScreen from "./pages/ChartScreen";
+import ParticipantScreen from "./pages/ParticipantScreen";
 
 
 // Components
@@ -18,4 +20,4 @@ import Time from "./components/Time";
 
 
 
-export { Home, Root, Login, Signup, Error, Avatar, BottomNav, Candle, Chart, ListTile, ParticipantList, Participants, Time}
+export { Home, Root, Login, Signup, Error, ChartScreen, ParticipantScreen, Avatar, BottomNav, Candle, Chart, ListTile, ParticipantList, Participants, Time }
