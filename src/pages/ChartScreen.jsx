@@ -1,46 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Chart } from '../Export';
-import { onValue, ref } from 'firebase/database';
+import { onValue, ref, query, orderByChild, equalTo } from 'firebase/database';
 import { db } from '../server/firebase';
 import { useParams } from 'react-router-dom';
 
 
-const ChartScreen = () => {
+const ChartScreen = (participants) => {
   const [candidates, setCandidates] = useState([]);
-  const [participants, setParticipantes] = useState([]);
 
-  const {sectionID} =  useParams();
+  const { pollID } = useParams();
 
   useEffect(() => {
-    const participantesRef = ref(db, `${sectionID}/participants/`);
-    const candidateRef = ref(db, `${sectionID}/Candidates/`);
-
-    const fetchData = () => {
-      onValue(participantesRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data !== null) {
-          const participantesList = Object.values(data);
-          setParticipantes(participantesList);
-          console.log(participantesList);
-        }
-      }, (error) => {
-        console.error("Error fetching data for participants:", error);
+    const q = query(ref(db, pollID + '/participants/'), orderByChild("candidate"), equalTo(true));
+    onValue(q, (snapshot) => {
+      const candidatesArray = [];
+      snapshot.forEach((childSnapshot) => {
+        const candidate = childSnapshot.val();
+        candidatesArray.push(candidate);
       });
-
-      onValue(candidateRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data !== null) {
-          const candidatesList = Object.values(data); 
-          setCandidates(candidatesList);
-          console.log(candidates);
-        }
-      }, (error) => {
-        console.error("Error fetching data for candidates:", error);
-      });
-    };
-
-    fetchData();
-  }, [candidates, sectionID]);
+      setCandidates(candidatesArray);
+    });
+  }, [pollID]);
 
 
   return (

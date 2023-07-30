@@ -5,7 +5,7 @@ import { BiLogOut, BiSolidBarChartAlt2 } from 'react-icons/bi';
 import { BsFillHandIndexThumbFill } from 'react-icons/bs';
 
 const BottomNav = ({ total, selected, onClick }) => {
-    const [isHost, setIsHost] = useState(true);
+    const [isHost, setIsHost] = useState(false);
 
     const handleClick = (link) => {
         onClick(link);
@@ -27,7 +27,7 @@ const BottomNav = ({ total, selected, onClick }) => {
     return (
         <BottomNavContainer>
             {isHost ? (
-                <button type="button" class="btn btn-transparent text-success fw-bold" data-bs-toggle="modal" data-bs-target="#participantsList">
+                <button type="button" className="btn btn-transparent text-success fw-bold" data-bs-toggle="modal" data-bs-target="#participantsList">
                     <MdGroupAdd className='fs-4 text-success' />
                     <span className='d-none d-md-inline'>Add Participant</span>
                 </button>
@@ -59,7 +59,7 @@ const BottomNav = ({ total, selected, onClick }) => {
                 </button>
             </div>
             {isHost ? (
-                <button class="btn btn-transparent text-danger fw-bold  border-0" type="button" id="button-addon2" >
+                <button className="btn btn-transparent text-danger fw-bold  border-0" type="button" id="button-addon2" >
                     <BiLogOut className='m-0 text-danger fw-bold' />
                     <span className='ms-1'>End Poll</span>
                 </button>

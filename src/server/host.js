@@ -1,6 +1,6 @@
 import { uid } from "uid";
 import { db, } from "./firebase";
-import { set, ref, push, remove, update } from "firebase/database";
+import { set, ref, push, remove, update, query, orderByChild, onValue, equalTo } from "firebase/database";
 
 
 // Host Poll
@@ -53,13 +53,14 @@ export const joinPoll = async (pollID, name) => {
 export const leavePoll = async (participant, pollID) => {
     remove(ref(db, pollID + '/participants/' + participant.uid));
 }
+
 //  End Poll
 export const endPoll = async (pollID) => {
     remove(ref(db, pollID));
 }
 
 // Make Candidate
-export const candidate = async (participant, pollID) => {
+export const makeCandidate = async (participant, pollID) => {
     if (participant.candidate === false) {
         update(ref(db, pollID + '/participants/' + participant.uid), {
             uid: participant.uid,
@@ -75,6 +76,7 @@ export const candidate = async (participant, pollID) => {
     }
 }
 
+
 // Vote
 export const vote = async (participant, pollID) => {
     if (participant.candidate === true) {
@@ -84,7 +86,7 @@ export const vote = async (participant, pollID) => {
             host: false,
             count: 1,
             voted: true,
-            candidate: false,
+            candidate: true,
         })
     } else {
         return;

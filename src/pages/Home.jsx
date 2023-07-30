@@ -1,99 +1,115 @@
 import React, { useEffect, useState } from 'react';
-import { BottomNav, ParticipantScreen, ChartScreen } from '../Export';
+import { useParams } from 'react-router-dom';
+import { equalTo, onValue, orderByChild, query, ref } from 'firebase/database';
+import { db } from '../server/firebase';
 import { BsFillHandIndexThumbFill } from 'react-icons/bs';
 import { HiClipboardDocumentCheck } from 'react-icons/hi2';
 import { MdSecurity } from 'react-icons/md';
-import { useParams } from 'react-router-dom';
-import { onValue, ref } from 'firebase/database';
-import { db } from '../server/firebase';
-import { vote } from '../server/host';
+import { BottomNav, ParticipantScreen, ChartScreen } from '../Export';
+import { makeCandidate, vote } from '../server/host';
 
 const Home = () => {
     const { pollID } = useParams();
-
     const [selected, setSelected] = useState("1");
-    const [checkedValues, setValues] = useState([]);
     const [users, setUsers] = useState([]);
+    const [candidates, setCandidates] = useState([]);
 
     useEffect(() => {
-        const userRef = ref(db, `${pollID}/participants/`);
-        onValue(userRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data !== null) {
-                const userList = Object.values(data); // Convert object to array
-                setUsers(userList);
+        const fetchCandidatesAndUsers = async () => {
+            await fetchCandidates();
+            await fetchUsers();
+        };
+
+        const fetchCandidates = async () => {
+            try {
+                const q = query(ref(db, `${pollID}/participants/`), orderByChild("candidate"), equalTo(true));
+                const snapshot = await new Promise((resolve) => onValue(q, resolve));
+                const candidatesArray = snapshotToArray(snapshot);
+                setCandidates(candidatesArray);
+            } catch (error) {
+                console.error("Error fetching candidates:", error);
             }
-        }, (error) => {
-            console.error("Error fetching data:", error);
-        });
+        };
+
+        const fetchUsers = async () => {
+            try {
+                const userRef = ref(db, `${pollID}/participants/`);
+                const snapshot = await new Promise((resolve) => onValue(userRef, resolve));
+                const data = snapshot.val();
+                if (data !== null) {
+                    const userList = Object.values(data);
+                    setUsers(userList);
+                }
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+
+        fetchCandidatesAndUsers();
     }, [pollID]);
 
+    const snapshotToArray = (snapshot) => {
+        const candidatesArray = [];
+        snapshot.forEach((childSnapshot) => {
+            const candidate = childSnapshot.val();
+            candidatesArray.push(candidate);
+        });
+        return candidatesArray;
+    };
 
-    const addCandidate = async (e) => {
-        const { value, checked } = e.target;
-
+    const addCandidate = async (e, user) => {
+        const { checked } = e.target;
         if (checked) {
-            setValues((prev) => [...prev, value]);
+            makeCandidate(user, pollID);
+        } else {
+            return;
         }
-    }
-
+    };
 
     const handleLinkClick = (link) => {
         setSelected(link);
-    }
+    };
 
     const copyText = () => {
         navigator.clipboard.writeText(pollID);
-    }
-
-
+    };
 
     return (
-        <div className='min-vh-100 bg-white'>
+        <div className="min-vh-100 bg-white">
+            {/* Security Dropdown */}
             <div className="dropdown">
                 <button className="btn btn-transparent security dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <MdSecurity className='fs-3 m-0 text-dark' />
                 </button>
                 <ul className="dropdown-menu p-2">
-                    <div class="input-group">
-                        <input type="text" class="form-control border-0" value={pollID} aria-describedby="button-addon2" />
-                        <button class="btn btn-transparent border-0" type="button" id="button-addon2" onClick={()=> copyText()}>
+                    <div className="input-group">
+                        <input type="text" className="form-control border-0" value={pollID} aria-describedby="button-addon2" readOnly />
+                        <button className="btn btn-transparent border-0" type="button" id="button-addon2" onClick={copyText}>
                             <HiClipboardDocumentCheck className='m-0 text-dark' />
                         </button>
                     </div>
                 </ul>
             </div>
-            <main >
-                {
-                    selected === "1" && (
-                        <ChartScreen />
-                    )
-                }
-                {
-                    selected === "2" && (
-                        <ParticipantScreen participantes={users} />
-                    )
-                }
+            <main>
+                {selected === "1" && <ChartScreen participants={users} />}
+                {selected === "2" && <ParticipantScreen participantes={users} />}
             </main>
             <BottomNav total={users.length} selected={selected} onClick={handleLinkClick} />
             {/* Vote Component */}
-            <div className="modal fade" id="vote" tabindex="-1" aria-labelledby="voteLabel" aria-hidden="true">
+            <div className="modal fade" id="vote" tabIndex="-1" aria-labelledby="voteLabel" aria-hidden="true">
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content">
-
                         <div className="modal-body">
                             <div className="container-fluid">
                                 <div className="row g-3">
-                                    {
-                                        users.map((user) => (
-                                            <div key={user.Id} className="col-12 d-flex align-items-center justify-content-between p-2 bg-light rounded-3 shadow-sm">
-                                                <p className='m-0 fw-bold text-capitalize'>{user.name}</p>
-                                                <button className="btn btn-outline-success" onClick={() => vote(user.uid,)} >
-                                                    <BsFillHandIndexThumbFill className='text-dark' />
-                                                </button>
-                                            </div>
-                                        ))
-                                    }
+                                    {candidates.map((user) => (
+                                        <div key={user.Id} className="col-12 d-flex align-items-center justify-content-between p-2 bg-light rounded-3 shadow-sm">
+                                            <p className='m-0 fw-bold text-capitalize'>{user.name}</p>
+                                            <button className="btn btn-outline-success" onClick={() => vote(user.uid)}>
+                                                <BsFillHandIndexThumbFill className='text-dark' />
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -101,31 +117,26 @@ const Home = () => {
                 </div>
             </div>
             {/* Participants List Modal */}
-            <div class="modal fade" id="participantsList" tabindex="-1" aria-labelledby="participantsListLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-body">
+            <div className="modal fade" id="participantsList" tabIndex="-1" aria-labelledby="participantsListLabel" aria-hidden="true">
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-body">
                             <div className="container-fluid">
                                 <div className="row">
                                     <div className="col-10">
                                         <input type="text" className='form-control' placeholder='Search for participantes' />
                                     </div>
                                     <div className="col-2">
-                                        <button className="btn btn-success" onClick={() => {
-
-                                        }}>Add</button>
+                                        <button className="btn btn-success" onClick={() => { }}>Add</button>
                                     </div>
-
                                     <form className="container p-3">
                                         <div className="row g-2">
-                                            {
-                                                users.map((user) => (
-                                                    <div key={user.uid} className="col-12 shadow-sm p-2 bg-light d-flex align-items-center justify-content-between">
-                                                        <p className='m-0 text-capitalize fw-bold'>{user.name}</p>
-                                                        <input type="checkbox" value={user.uid} />
-                                                    </div>
-                                                ))
-                                            }
+                                            {users.map((user) => (
+                                                <div key={user.uid} className="col-12 shadow-sm p-2 bg-light d-flex align-items-center justify-content-between">
+                                                    <p className='m-0 text-capitalize fw-bold'>{user.name}</p>
+                                                    <input type="checkbox" value={user.uid} onChange={(e) => addCandidate(e, user)} />
+                                                </div>
+                                            ))}
                                         </div>
                                     </form>
                                 </div>
@@ -135,7 +146,7 @@ const Home = () => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default Home
+export default Home;
