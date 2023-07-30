@@ -102,14 +102,18 @@ const Home = () => {
                         <div className="modal-body">
                             <div className="container-fluid">
                                 <div className="row g-3">
-                                    {candidates.map((user) => (
-                                        <div key={user.Id} className="col-12 d-flex align-items-center justify-content-between p-2 bg-light rounded-3 shadow-sm">
-                                            <p className='m-0 fw-bold text-capitalize'>{user.name}</p>
-                                            <button className="btn btn-outline-success" onClick={() => vote(user.uid)}>
-                                                <BsFillHandIndexThumbFill className='text-dark' />
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {candidates.length === 0 ? (
+                                        <div>No candidates found.</div>
+                                    ) : (
+                                        candidates.map((user) => (
+                                            <div key={user.Id} className="col-12 d-flex align-items-center justify-content-between p-2 bg-light rounded-3 shadow-sm">
+                                                <p className='m-0 fw-bold text-capitalize'>{user.name}</p>
+                                                <button className="btn btn-outline-success" onClick={() => vote(user.uid)}>
+                                                    <BsFillHandIndexThumbFill className='text-dark' />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </div>
