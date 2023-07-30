@@ -59,12 +59,15 @@ const BottomNav = ({ total, selected, onClick }) => {
                 </button>
             </div>
             {isHost ? (
-                <button className='btn btn-transparent text-danger fw-bold'>
-                    <BiLogOut className='fs-4 text-danger' />
-                    <span className='d-none d-md-inline'>End Election</span>
+                <button class="btn btn-transparent text-danger fw-bold  border-0" type="button" id="button-addon2" >
+                    <BiLogOut className='m-0 text-danger fw-bold' />
+                    <span className='ms-1'>End Poll</span>
                 </button>
             ) : (
-                <div></div>
+                <button className='btn btn-transparent text-danger fw-bold'>
+                    <BiLogOut className='fs-4 text-danger' />
+                    <span className='d-none d-md-inline'>Leave</span>
+                </button>
             )}
         </BottomNavContainer>
     );

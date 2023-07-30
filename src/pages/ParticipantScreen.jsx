@@ -44,7 +44,7 @@ const ParticipantScreen = ({ participantes }) => {
         paginationButtons.push(
             <button
                 key={i}
-                className={normalizedCurrentPage === i ? "active btn btn-outline-info mb-1" : "btn btn-outline-info mb-1"}
+                className={normalizedCurrentPage === i ? "active btn btn-outline-light mb-1" : "btn btn-outline-light mb-1"}
                 onClick={() => handlePageChange(i)}
             >
                 {i}
@@ -56,7 +56,7 @@ const ParticipantScreen = ({ participantes }) => {
         <div className="min-vh-100 p-4 d-flex align-items-center justify-content-between ">
             <div className="container-fluid p-4">
                 <div className="row g-4">
-                    <div className="col-11 container-fluid d-flex align-items-center justify-content-center">
+                    <div className="col-11">
                         <div className="item-container">
                             {user.length === 0 ? (
                                 <div>No participants found.</div>
@@ -95,3 +95,6 @@ const ParticipantScreen = ({ participantes }) => {
 };
 
 export default ParticipantScreen;
+
+
+

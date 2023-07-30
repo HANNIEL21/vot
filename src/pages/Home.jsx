@@ -9,12 +9,11 @@ import { db } from '../server/firebase';
 import { vote } from '../server/host';
 
 const Home = () => {
+    const { pollID } = useParams();
+
     const [selected, setSelected] = useState("1");
     const [checkedValues, setValues] = useState([]);
     const [users, setUsers] = useState([]);
-
-    const { pollID } = useParams();
-
 
     useEffect(() => {
         const userRef = ref(db, `${pollID}/participants/`);
@@ -38,12 +37,14 @@ const Home = () => {
         }
     }
 
-    console.log(checkedValues);
 
     const handleLinkClick = (link) => {
         setSelected(link);
     }
 
+    const copyText = () => {
+        navigator.clipboard.writeText(pollID);
+    }
 
 
 
@@ -54,9 +55,9 @@ const Home = () => {
                     <MdSecurity className='fs-3 m-0 text-dark' />
                 </button>
                 <ul className="dropdown-menu p-2">
-                    <div className="d-flex align-items-center justify-content-between">
-                        <p className='fw-bold m-0 '>SectionID: {pollID}</p>
-                        <button className="btn btn-transparent m-0" type="button">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-0" value={pollID} aria-describedby="button-addon2" />
+                        <button class="btn btn-transparent border-0" type="button" id="button-addon2" onClick={()=> copyText()}>
                             <HiClipboardDocumentCheck className='m-0 text-dark' />
                         </button>
                     </div>
