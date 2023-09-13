@@ -1,5 +1,5 @@
 import express from "express";
-import bodyParser from "body-parser";
+import bodyparser from "body-parser";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Set the origin to your React app's domain
+        origin: "*", // Fixed a typo here
         methods: ["GET", "POST"]
     }
 });
@@ -21,17 +21,16 @@ dotenv.config();
 
 const uri = process.env.DB_URI;
 
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(uri)
     .then(() => console.log("DB connected successfully"))
     .catch((err) => console.error("DB connection error:", err));
 
-app.use(cors()); // Enable CORS middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 app.use(express.json());
+app.use(bodyparser.urlencoded({ extended: true }));
 
-// Your routes here
-app.get("/", (req, res) => {
-    res.send("Welcome to Vott API");
+app.get("/", (req, res)=> {
+    res.send("Welcom to Vott API");
 });
 
 io.on("connection", (socket) => {
@@ -164,8 +163,9 @@ io.on("connection", (socket) => {
         }
     })
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         console.log("User disconnected:", socket.id);
+
     });
 });
 
