@@ -5,7 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
-import { createAndSavePoll, joinPoll, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate } from "./controllers/Poll.js";
+import { createAndSavePoll, joinPoll, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate, createUserFromUserArray } from "./controllers/Poll.js";
 import Poll from "./model/poll.js";
 
 const app = express();
@@ -66,6 +66,20 @@ io.on("connection", (socket) => {
 
         // Emit 'updateUI' event to the joined poll room
         emitUpdateUI(pollID);
+    });
+
+    socket.on('createUsers', async ({ pollID, userArray }) => {
+        try {
+            console.log("create");
+            // Call the createUserFromUserArray function to create users
+            await createUserFromUserArray(pollID, userArray);
+
+            // Emit a success event if needed
+            socket.emit('createUsersSuccess', 'Users created successfully');
+        } catch (error) {
+            // Emit an error event in case of any errors
+            socket.emit('createUsersError', 'Error creating users');
+        }
     });
 
     socket.on('makeCandidate', async ({ pollID, userID }) => {

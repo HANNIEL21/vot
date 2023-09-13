@@ -33,7 +33,36 @@ const createAndSavePoll = async (pollID, hostName, userID) => {
     }
 };
 
-const joinPoll = async (pollID, userID) => {
+const createUserFromUserArray = async (pollID, userArray) => {
+    try {
+        // Find the poll document by its ID
+        const poll = await Poll.findById(pollID);
+
+        if (!poll) {
+            console.error(`Poll with ID ${pollID} not found.`);
+            return;
+        }
+
+        for (const user of userArray) {
+            // Create participant data
+            const participantData = {
+                _id: user.id,
+                name: user.name,
+                voted: false,
+                isHost: false, // Assuming participants are not hosts
+            };
+
+            // Add the participant to the poll
+            await addParticipantToPoll(poll._id, participantData);
+
+            console.log(`User ${user.name} joined poll with ID: ${pollID}`);
+        }
+    } catch (error) {
+        console.error('Error joining poll:', error);
+    }
+};
+
+const joinPoll = async (pollID, staffID) => {
     try {
         // Find the poll document by its ID
         const poll = await Poll.findById(pollID);
@@ -45,58 +74,15 @@ const joinPoll = async (pollID, userID) => {
 
         // Check if the user already exists in the poll
         const existingParticipant = poll.participants.find(
-            (participant) => participant._id.toString() === userID
+            (participant) => participant._id.toString() === staffID
         );
 
-        if (existingParticipant) {
-            console.log(`User ${participantName} is already part of the poll with ID: ${pollID}`);
+        if (!existingParticipant) {
+            console.log(`User ${staffID} was not found in the poll with ID: ${pollID}`);
             return;
         }
 
-        // Create participant data
-        const participantData = {
-            _id: userID,
-            name: participantName,
-            staffID: 'EMP-50442',
-            voted: false,
-            isHost: false, // Assuming participants are not hosts
-        };
-
-        // Add the participant to the poll
-        await addParticipantToPoll(poll._id, participantData);
-
-        console.log(`User ${participantName} joined poll with ID: ${pollID}`);
-    } catch (error) {
-        console.error('Error joining poll:', error);
-    }
-};
-
-
-
-
-const appParticipants = async (pollID, participantName, userID) => {
-    try {
-        // Find the poll document by its ID
-        const poll = await Poll.findById(pollID);
-
-        if (!poll) {
-            console.error(`Poll with ID ${pollID} not found.`);
-            return;
-        }
-
-        // Create participant data
-        const participantData = {
-            _id: userID,
-            name: participantName,
-            staffID: "EMP-50442",
-            voted: false,
-            isHost: false, // Assuming participants are not hosts
-        };
-
-        // Add the participant to the poll
-        await addParticipantToPoll(poll._id, participantData);
-
-        console.log(`User ${participantName} joined poll with ID: ${pollID}`);
+        console.log(`User ${staffID} joined poll with ID: ${pollID}`);
     } catch (error) {
         console.error('Error joining poll:', error);
     }
@@ -115,7 +101,6 @@ const removeParticipantFromDB = async (pollID, userName) => {
         console.error('Error removing participant from the database:', error);
     }
 };
-
 
 const addParticipantToPoll = async (pollID, participantData) => {
     try {
@@ -183,7 +168,6 @@ const addParticipantToCandidates = async (pollID, userID) => {
     }
 };
 
-// the Vote function
 const voteForCandidate = async (pollID, candidateID, participantID) => {
     try {
         // Find the poll by ID
@@ -248,7 +232,6 @@ const annonVoteForCandidate = async (pollID, candidateID) => {
         return null; // You can handle the error as needed
     }
 };
-
 
 const participantVoted = async (pollID, participantID) => {
     try {
@@ -315,4 +298,4 @@ const candidateVoted = async (pollID, participantID) => {
 };
 
 
-export { createAndSavePoll, joinPoll, addParticipantToPoll, removeParticipantFromDB, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate }
+export { createAndSavePoll, joinPoll, createUserFromUserArray, addParticipantToPoll, removeParticipantFromDB, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate }
