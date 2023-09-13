@@ -29,6 +29,10 @@ app.use(cors());
 app.use(express.json());
 app.use(bodyparser.urlencoded({ extended: true }));
 
+app.get("/", (req, res)=> {
+    res.send("Welcom to Vott API");
+});
+
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
