@@ -5,7 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
-import { createAndSavePoll, joinPoll, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate, createUserFromUserArray } from "./controllers/Poll.js";
+import { createAndSavePoll, login, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate, createUserFromUserArray } from "./controllers/Poll.js";
 import Poll from "./model/poll.js";
 
 const app = express();
@@ -15,7 +15,7 @@ const io = new Server(server, {
         origin: "https://vott.com.ng", // Set the origin to your React app's domain
         methods: ["GET", "POST"]
     }
-});     
+});
 
 dotenv.config();
 
@@ -43,14 +43,13 @@ io.on("connection", (socket) => {
     };
 
     socket.on("host", async (data, callback) => {
-        const { hostName, pollID, userID } = data;
+        const { pollID, pollName } = data;
 
         // Join the poll room
         socket.join(pollID);
 
         try {
-            await createAndSavePoll(pollID, hostName, userID);
-            callback({ success: true, poll: pollID, user: userID });
+            await createAndSavePoll(pollID, pollName);
 
             // Emit an 'updateUI' event to the joined poll room
             emitUpdateUI(pollID);
@@ -60,30 +59,47 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("join", (data) => {
-        const { staffID, pollID, userID } = data;
+    socket.on("login", (data) => {
+        const { staffID } = data;
 
-        // Join poll
-        socket.join(pollID);
+        // Call joinPoll function to check if the user exists in the participant database
+        login(staffID, (userData) => {
+            // userData contains the participant data if the user exists
 
-        // Add user to the poll
-        joinPoll(pollID, staffID, userID);
+            if (userData) {
+                // User exists in the participant database, you can perform actions here
+                console.log(`User ${staffID} exists in the participant database:`, userData);
 
-        // Emit 'updateUI' event to the joined poll room
-        emitUpdateUI(pollID);
+            } else {
+                // User not found in the participant database
+                console.log(`User ${staffID} not found in the participant database.`);
+            }
+        });
     });
 
-    socket.on('createUsers', async ({ pollID, userArray }) => {
+    socket.on('createUsers', async (userArray) => {
         try {
             console.log("create");
             // Call the createUserFromUserArray function to create users
-            await createUserFromUserArray(pollID, userArray);
+            await createUserFromUserArray(userArray);
 
             // Emit a success event if needed
             socket.emit('createUsersSuccess', 'Users created successfully');
         } catch (error) {
             // Emit an error event in case of any errors
             socket.emit('createUsersError', 'Error creating users');
+        }
+    });
+
+    socket.on('fetchPolls', async () => {
+        try {
+            // Fetch all polls from the database
+            const allPolls = await Poll.find({});
+
+            // Emit the "pollsFetched" event with the list of polls to the client
+            socket.emit('pollsFetched', allPolls);
+        } catch (error) {
+            console.error('Error fetching polls:', error);
         }
     });
 
