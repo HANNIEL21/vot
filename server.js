@@ -87,9 +87,6 @@ io.on("connection", (socket) => {
         }
     });
 
-
-
-
     socket.on('createUsers', async (userArray) => {
         try {
             console.log("create");
@@ -104,81 +101,78 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on('fetchPolls', async () => {
+    // Socket.io event listener for fetching polls and candidates
+    socket.on('fetchPollsAndCandidates', async () => {
         try {
             // Fetch all polls from the database
             const allPolls = await Poll.find({});
 
             // Emit the "pollsFetched" event with the list of polls to the client
             socket.emit('pollsFetched', allPolls);
-        } catch (error) {
-            console.error('Error fetching polls:', error);
-        }
-    });
 
-    socket.on('getCandidates', async (pollID) => {
-        try {
-            // Find the poll document by its ID
-            const poll = await Poll.findById(pollID);
-
-            if (!poll) {
-                console.error(`Poll with ID ${pollID} not found.`);
-                return;
+            // Fetch candidates for each poll and emit the "candidatesFetched" event
+            for (const poll of allPolls) {
+                const candidates = await Candidate.find({ poll: poll._id });
+                // Emit the "candidatesFetched" event for each poll with the list of candidates
+                socket.emit(`candidatesFetched-${poll._id}`, candidates);
             }
-
-            // Retrieve candidates for the specified poll
-            const candidates = await Candidate.find({ poll: pollID });
-
-            // Emit the "candidatesFetched" event with the list of candidates to the client
-            socket.emit('candidatesFetched', candidates);
         } catch (error) {
-            console.error('Error fetching candidates:', error);
+            console.error('Error fetching polls and candidates:', error);
         }
     });
+
 
     socket.on('addCandidate', async ({ pollID, staffID }) => {
         try {
             // Find the poll by ID
             const poll = await Poll.findById(pollID);
-    
+
             if (!poll) {
                 console.error('Poll not found.');
                 return;
             }
-    
+
             // Check if the user exists in the Participants database
             const participant = await Participant.findOne({ _id: staffID });
-    
+
             if (participant) {
-                // Create a candidate object based on the participant's information
-                const newCandidate = new Candidate({
-                    _id: participant._id,
-                    name: participant.name,
-                    voted: true, // Initialize the voted property as false
-                    isHost: false,
-                    count: 1, // Initialize the count for the candidate
-                });
-    
-                // Add the new candidate to the candidates array in the poll
-                poll.candidates.push(newCandidate);
-    
-                console.log(`User with ID ${staffID} is now a candidate.`);
+                console.log(participant);
+                // Check if the user is already a candidate in this poll
+                const existingCandidate = poll.candidates.find((candidate) =>
+                    candidate._id.toString() === staffID
+                );
+
+                if (!existingCandidate) {
+                    // Create a candidate object based on the participant's information
+                    const newCandidate = new Candidate({
+                        _id: participant._id,
+                        name: participant.name,
+                        voted: true, // Initialize the voted property as false
+                        isHost: false,
+                        count: 1, // Initialize the count for the candidate
+                    });
+
+                    // Add the new candidate to the candidates array in the poll
+                    poll.candidates.push(newCandidate);
+
+                    console.log(`User with ID ${staffID} is now a candidate.`);
+                } else {
+                    console.error(`User with ID ${staffID} is already a candidate in this poll.`);
+                }
             } else {
                 console.error(`User with ID ${staffID} not found in the Participants database.`);
             }
-    
+
             // Save the updated poll
             await poll.save();
-    
+
             // Emit an 'updateUI' event to notify clients about the change
             emitUpdateUI(pollID);
-    
+
         } catch (error) {
             console.error('Error making user a candidate:', error);
         }
     });
-    
-    
 
 
     socket.on('vote', async ({ pollID, candidateID, participantID }) => {
@@ -206,43 +200,6 @@ io.on("connection", (socket) => {
             console.error('Error retrieving data:', error);
         }
     });
-
-    // Annon
-    socket.on('joinAnnon', (data) => {
-        const { pollID } = data;
-
-        // Join Poll
-        socket.join(pollID);
-    })
-
-    socket.on('voteAnnon', async ({ pollID, candidateID }) => {
-        try {
-            // Call voteForCandidate to cast the vote
-            const candidate = await annonVoteForCandidate(pollID, candidateID);
-
-            if (!candidate) {
-                // Handle the case where the vote couldn't be cast (e.g., candidate not found)
-                console.error('Failed to cast the vote.');
-                return;
-            }
-
-            // Check if the candidate's ID matches the provided candidateID
-            if (candidate._id.toString() === candidateID) {
-                // Update the candidate's vote count
-                candidate.count++;
-
-                // Save the updated candidate with the new vote count
-                await candidate.save();
-            } else {
-                console.error('Candidate ID mismatch. Vote not cast.');
-            }
-
-            // Emit an 'updateUI' event to notify clients about the change
-            emitUpdateUI(pollID);
-        } catch (error) {
-            console.error('Error casting vote:', error);
-        }
-    })
 
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);

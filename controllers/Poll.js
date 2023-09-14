@@ -15,13 +15,15 @@ const createAndSavePoll = async (pollID, pollName) => {
         // Save the poll to the database
         await poll.save();
 
+        // After saving the poll, copy participants to it
+        await copyParticipantsToPoll(pollID);
 
         console.log(`Poll created with ID: ${poll._id}`);
-
     } catch (error) {
         console.error('Error creating poll:', error);
     }
 };
+
 
 const createUserFromUserArray = async (userArray) => {
     try {
@@ -121,7 +123,7 @@ const addCandidateToPoll = async (pollID, candidateData) => {
     }
 };
 
-const addParticipantToPoll = async (pollID, participantData) => {
+const copyParticipantsToPoll = async (pollID) => {
     try {
         // Find the poll document by its ID
         const poll = await Poll.findById(pollID);
@@ -131,20 +133,23 @@ const addParticipantToPoll = async (pollID, participantData) => {
             return;
         }
 
-        // Create a new participant using the Participant model
-        const participant = new Participant(participantData);
+        // Fetch all participants from the Participant collection
+        const allParticipants = await Participant.find({});
 
-        // Add the participant to the poll's participants array
-        poll.participants.push(participant);
+        // Add each participant to the poll's participants array
+        allParticipants.forEach((participant) => {
+            poll.participants.push(participant);
+        });
 
         // Save the updated poll document
         await poll.save();
 
-        console.log(`Participant ${participantData.name} added to poll ${pollID}`);
+        console.log(`All participants copied to poll ${pollID}`);
     } catch (error) {
-        console.error('Error adding participant to poll:', error);
+        console.error('Error copying participants to poll:', error);
     }
 };
+
 
 const addParticipantToCandidates = async (pollID, staffID) => {
     try {
