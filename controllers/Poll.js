@@ -1,6 +1,7 @@
 import Participant from "../model/participant.js";
 import mongoose from "mongoose";
 import Poll from "../model/poll.js";
+import Candidate from "../model/candidate.js";
 
 const createAndSavePoll = async (pollID, pollName) => {
     try {
@@ -51,6 +52,7 @@ const login = async (staffID, callback) => {
 
         if (!participant) {
             console.log(`User ${staffID} was not found in the participant database.`);
+            callback(null); // Indicate that the user does not exist via the callback
             return;
         }
 
@@ -60,8 +62,12 @@ const login = async (staffID, callback) => {
         callback(participant);
     } catch (error) {
         console.error('Error checking participant:', error);
+        callback(null); // Handle the error and indicate that the user does not exist via the callback
     }
 };
+
+
+
 
 const fetchAllPolls = async () => {
     try {
@@ -90,6 +96,31 @@ const removeParticipantFromDB = async (pollID, userName) => {
     }
 };
 
+const addCandidateToPoll = async (pollID, candidateData) => {
+    try {
+        // Find the poll document by its ID
+        const poll = await Poll.findById(pollID);
+
+        if (!poll) {
+            console.error(`Poll with ID ${pollID} not found.`);
+            return;
+        }
+
+        // Create a new participant using the Participant model
+        const participant = new Candidate(candidateData);
+
+        // Add the participant to the poll's participants array
+        poll.participants.push(participant);
+
+        // Save the updated poll document
+        await poll.save();
+
+        console.log(`Participant ${participantData.name} added to poll ${pollID}`);
+    } catch (error) {
+        console.error('Error adding participant to poll:', error);
+    }
+};
+
 const addParticipantToPoll = async (pollID, participantData) => {
     try {
         // Find the poll document by its ID
@@ -115,7 +146,7 @@ const addParticipantToPoll = async (pollID, participantData) => {
     }
 };
 
-const addParticipantToCandidates = async (pollID, userID) => {
+const addParticipantToCandidates = async (pollID, staffID) => {
     try {
         // Find the poll by ID
         const poll = await Poll.findById(pollID);
@@ -125,36 +156,34 @@ const addParticipantToCandidates = async (pollID, userID) => {
             return;
         }
 
-        // Find the participant in the participants array
-        const participant = poll.participants.find(
-            (participant) => participant && participant._id && participant._id.toString() === userID
-        );
+        // Check if the user exists in the Participants database
+        const participant = await Participant.findOne({ _id: staffID });
 
         if (participant) {
             // Create a candidate object based on the participant's information
             const candidate = {
                 _id: participant._id,
                 name: participant.name,
-                isHost: participant.isHost, // Assuming candidates are not hosts
-                voted: true, // You can set candidate-specific properties here
-                count: 1, // Initialize the count for the candidate
+                isHost: false, // Assuming candidates are not hosts
+                voted: false, // Initialize the voted property as false
+                count: 0, // Initialize the count for the candidate
             };
 
-            // Add the candidate to candidates
+            // Add the candidate to the candidates array in the poll
             poll.candidates.push(candidate);
 
             // Save the updated poll
             await poll.save();
-            // Update the 'voted' property of the candidate to true
-            await candidateVoted(pollID, participant._id);
+
             console.log('User added to candidates.');
         } else {
-            console.error('Participant not found in the poll.');
+            console.error('User not found in the Participants database.');
         }
     } catch (error) {
         console.error('Error adding user to candidates:', error);
     }
 };
+
 
 const voteForCandidate = async (pollID, candidateID, participantID) => {
     try {
@@ -286,4 +315,4 @@ const candidateVoted = async (pollID, participantID) => {
 };
 
 
-export { createAndSavePoll, login, createUserFromUserArray, addParticipantToPoll, removeParticipantFromDB, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate }
+export { createAndSavePoll, login, createUserFromUserArray, addCandidateToPoll, removeParticipantFromDB, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate }

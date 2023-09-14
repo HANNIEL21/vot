@@ -7,12 +7,14 @@ import mongoose from "mongoose";
 import { Server } from "socket.io";
 import { createAndSavePoll, login, addParticipantToCandidates, voteForCandidate, annonVoteForCandidate, createUserFromUserArray } from "./controllers/Poll.js";
 import Poll from "./model/poll.js";
+import Candidate from "./model/candidate.js";
+import Participant from "./model/participant.js";
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://vott.com.ng", // Set the origin to your React app's domain
+        origin: "http://localhost:3000", // Set the origin to your React app's domain
         methods: ["GET", "POST"]
     }
 });
@@ -59,23 +61,34 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("login", (data) => {
+    socket.on("login", async (data, callback) => {
         const { staffID } = data;
 
-        // Call joinPoll function to check if the user exists in the participant database
-        login(staffID, (userData) => {
-            // userData contains the participant data if the user exists
+        try {
+            // Call the login function to check if the user exists in the participant database
+            login(staffID, (userData) => {
+                // userData contains the participant data if the user exists
 
-            if (userData) {
-                // User exists in the participant database, you can perform actions here
-                console.log(`User ${staffID} exists in the participant database:`, userData);
+                if (userData) {
+                    // User exists in the participant database, you can perform actions here
+                    console.log(`User ${staffID} exists in the participant database:`, userData);
 
-            } else {
-                // User not found in the participant database
-                console.log(`User ${staffID} not found in the participant database.`);
-            }
-        });
+                    // You can return the user data to the client via the provided callback
+                    callback(userData);
+                } else {
+                    // User not found in the participant database
+                    console.log(`User ${staffID} not found in the participant database.`);
+                    callback(null); // You can indicate that the user does not exist
+                }
+            });
+        } catch (error) {
+            console.error('Error checking user existence:', error);
+            callback(null); // Handle the error and return null
+        }
     });
+
+
+
 
     socket.on('createUsers', async (userArray) => {
         try {
@@ -103,19 +116,70 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on('makeCandidate', async ({ pollID, userID }) => {
+    socket.on('getCandidates', async (pollID) => {
         try {
-            // Call the function to add the user to candidates
-            await addParticipantToCandidates(pollID, userID);
+            // Find the poll document by its ID
+            const poll = await Poll.findById(pollID);
 
+            if (!poll) {
+                console.error(`Poll with ID ${pollID} not found.`);
+                return;
+            }
+
+            // Retrieve candidates for the specified poll
+            const candidates = await Candidate.find({ poll: pollID });
+
+            // Emit the "candidatesFetched" event with the list of candidates to the client
+            socket.emit('candidatesFetched', candidates);
+        } catch (error) {
+            console.error('Error fetching candidates:', error);
+        }
+    });
+
+    socket.on('addCandidate', async ({ pollID, staffID }) => {
+        try {
+            // Find the poll by ID
+            const poll = await Poll.findById(pollID);
+    
+            if (!poll) {
+                console.error('Poll not found.');
+                return;
+            }
+    
+            // Check if the user exists in the Participants database
+            const participant = await Participant.findOne({ _id: staffID });
+    
+            if (participant) {
+                // Create a candidate object based on the participant's information
+                const newCandidate = new Candidate({
+                    _id: participant._id,
+                    name: participant.name,
+                    voted: true, // Initialize the voted property as false
+                    isHost: false,
+                    count: 1, // Initialize the count for the candidate
+                });
+    
+                // Add the new candidate to the candidates array in the poll
+                poll.candidates.push(newCandidate);
+    
+                console.log(`User with ID ${staffID} is now a candidate.`);
+            } else {
+                console.error(`User with ID ${staffID} not found in the Participants database.`);
+            }
+    
+            // Save the updated poll
+            await poll.save();
+    
             // Emit an 'updateUI' event to notify clients about the change
             emitUpdateUI(pollID);
-
-            console.log(`User with ID ${userID} is now a candidate.`);
+    
         } catch (error) {
             console.error('Error making user a candidate:', error);
         }
     });
+    
+    
+
 
     socket.on('vote', async ({ pollID, candidateID, participantID }) => {
         try {
