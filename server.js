@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://vott.com.ng", // Set the origin to your React app's domain
+        origin: "http://localhost:3000", // Set the origin to your React app's domain
         methods: ["GET", "POST"]
     }
 });
@@ -101,7 +101,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Socket.io event listener for fetching polls and candidates
     socket.on('fetchPollsAndCandidates', async () => {
         try {
             // Fetch all polls from the database
@@ -120,7 +119,6 @@ io.on("connection", (socket) => {
             console.error('Error fetching polls and candidates:', error);
         }
     });
-
 
     socket.on('addCandidate', async ({ pollID, staffID }) => {
         try {
@@ -175,21 +173,56 @@ io.on("connection", (socket) => {
     });
 
 
-    socket.on('vote', async ({ pollID, candidateID, participantID }) => {
+    socket.on('vote', async ({ pollID, candidateID, staffID }) => {
         try {
-            const candidate = await voteForCandidate(pollID, candidateID, participantID);
+            // Find the poll by ID
+            const poll = await Poll.findById(pollID);
 
-            if (candidate) {
-                console.log(`Vote cast for candidate ${candidateID} by participant ${participantID}`);
-                // Notify clients about the change
-                emitUpdateUI(pollID);
-            } else {
-                console.error('Failed to cast the vote or candidate ID mismatch.');
+            if (!poll) {
+                console.error('Poll not found.');
+                return;
             }
+
+            // Find the candidate by ID
+            const candidate = poll.candidates.find(c => c._id.toString() === candidateID);
+
+            if (!candidate) {
+                console.error('Candidate not found.');
+                return;
+            }
+
+            // Find the participant in the poll's participants array by ID
+            const participant = poll.participants.find(p => p._id.toString() === staffID);
+
+            if (!participant) {
+                console.error('Participant not found in the poll.');
+                return;
+            }
+
+            // Check if the participant has already voted
+            if (participant.voted) {
+                console.error(`Participant ${participantID} has already voted.`);
+                return;
+            }
+
+            // Update the participant's voted status to true
+            participant.voted = true;
+
+            // Increment the candidate's count
+            candidate.count++;
+
+            // Save the updated poll
+            await poll.save();
+
+            console.log(`Vote cast for candidate ${candidateID} by participant ${participantID}`);
+
+            // Notify clients about the change
+            emitUpdateUI(pollID);
         } catch (error) {
             console.error('Error casting vote:', error);
         }
     });
+
 
 
     socket.on('fetchData', async (pollID) => {

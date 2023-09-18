@@ -169,7 +169,7 @@ const addParticipantToCandidates = async (pollID, staffID) => {
             const candidate = {
                 _id: participant._id,
                 name: participant.name,
-                isHost: false, // Assuming candidates are not hosts
+                isHost: participant.isHost, // Assuming candidates are not hosts
                 voted: false, // Initialize the voted property as false
                 count: 0, // Initialize the count for the candidate
             };
