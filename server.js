@@ -44,7 +44,7 @@ io.on("connection", (socket) => {
         io.to(pollID).emit('updateUI'); // Emit the 'updateUI' event to the specific poll room
     };
 
-    socket.on("host", async (data, callback) => {
+    socket.on("host", async (data, clientCallback) => {
         const { pollID, pollName } = data;
 
         // Join the poll room
@@ -55,11 +55,21 @@ io.on("connection", (socket) => {
 
             // Emit an 'updateUI' event to the joined poll room
             emitUpdateUI(pollID);
+
+            // Success callback
+            if (clientCallback) {
+                clientCallback({ success: true, message: 'Poll created successfully.' });
+            }
         } catch (error) {
             console.error('Error creating and saving poll:', error);
-            callback({ success: false, error: 'Failed to create and save the poll.' });
+
+            // Error callback
+            if (clientCallback) {
+                clientCallback({ success: false, error: 'Failed to create and save the poll.' });
+            }
         }
     });
+
 
     socket.on("login", async (data, callback) => {
         const { staffID } = data;
@@ -87,19 +97,21 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on('createUsers', async (userArray) => {
+    socket.on('createUsers', async (userArray, callback) => {
         try {
             console.log("create");
             // Call the createUserFromUserArray function to create users
             await createUserFromUserArray(userArray);
 
-            // Emit a success event if needed
-            socket.emit('createUsersSuccess', 'Users created successfully');
+            // Call the callback with a success message
+            callback({ success: true, message: 'Users created successfully' });
+
         } catch (error) {
-            // Emit an error event in case of any errors
-            socket.emit('createUsersError', 'Error creating users');
+            // Call the callback with an error message
+            callback({ success: false, message: 'Error creating users' });
         }
     });
+
 
     socket.on('fetchPollsAndCandidates', async () => {
         try {
@@ -120,13 +132,14 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on('addCandidate', async ({ pollID, staffID }) => {
+    socket.on('addCandidate', async ({ pollID, staffID }, callback) => {
         try {
             // Find the poll by ID
             const poll = await Poll.findById(pollID);
 
             if (!poll) {
                 console.error('Poll not found.');
+                callback({success: false, message: `poll with ID: ${pollID} not found`});
                 return;
             }
 
@@ -154,11 +167,14 @@ io.on("connection", (socket) => {
                     poll.candidates.push(newCandidate);
 
                     console.log(`User with ID ${staffID} is now a candidate.`);
+                    callback({ success: true, message: `User with ID ${staffID} is now a candidate.` });
                 } else {
                     console.error(`User with ID ${staffID} is already a candidate in this poll.`);
+                    callback({ success: false, message: `User with ID ${staffID} is already a candidate in this poll.` });
                 }
             } else {
                 console.error(`User with ID ${staffID} not found in the Participants database.`);
+                callback({ success: false, message: `User with ID ${staffID} not found in the Participants database.` });
             }
 
             // Save the updated poll
@@ -178,61 +194,61 @@ io.on("connection", (socket) => {
         try {
             // Find the poll by ID
             const poll = await Poll.findById(pollID);
-    
+
             if (!poll) {
                 console.error('Poll not found.');
                 return callback({ success: false, message: 'Poll not found' });
             }
-    
+
             // Find the candidate by ID
             const candidate = poll.candidates.find(c => c._id.toString() === candidateID);
-    
+
             if (!candidate) {
                 console.error('Candidate not found.');
                 return callback({ success: false, message: 'Candidate not found' });
             }
-    
+
             // Find the participant in the poll's participants array by ID
             const participant = poll.participants.find(p => p._id.toString() === userID);
-    
+
             if (!participant) {
                 console.error('Participant not found in the poll.');
                 return callback({ success: false, message: 'Participant not found in the poll' });
             }
-    
+
             // Check if the participant has already voted
             if (participant.voted) {
                 console.error(`Participant ${participant._id} has already voted.`);
                 return callback({ success: false, message: 'Participant has already voted' });
             }
-    
+
             // Update the participant's voted status to true
             participant.voted = true;
-    
+
             // Increment the candidate's count
             candidate.count++;
-    
+
             // Save the updated poll
             await poll.save();
-    
+
             console.log(`Vote cast for candidate ${candidateID} by participant ${participant._id}`);
-    
+
             // Notify clients about the change
             emitUpdateUI(pollID);
-    
+
             // Return participant data as a success response
             const participantData = {
                 _id: participant._id,
                 name: participant.name, // Include any other participant data you need
             };
-    
+
             return callback({ success: true, participant: participantData, message: `Vote cast for candidate ${candidateID} by participant ${participant._id}` });
         } catch (error) {
             console.error('Error casting vote:', error);
             return callback({ success: false, message: 'Error casting vote', });
         }
     });
-    
+
 
 
 
