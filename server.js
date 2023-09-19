@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Set the origin to your React app's domain
+        origin: "https://vott.com.ng", // Set the origin to your React app's domain
         methods: ["GET", "POST"]
     }
 });
