@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://vott.com.ng", // Set the origin to your React app's domain
+        origin: "http://localhost:3000", // Set the origin to your React app's domain
         methods: ["GET", "POST"]
     }
 });
@@ -173,55 +173,66 @@ io.on("connection", (socket) => {
     });
 
 
-    socket.on('vote', async ({ pollID, candidateID, staffID }) => {
+    socket.on('vote', async ({ pollID, candidateID, userID }, callback) => {
+        console.log(userID);
         try {
             // Find the poll by ID
             const poll = await Poll.findById(pollID);
-
+    
             if (!poll) {
                 console.error('Poll not found.');
-                return;
+                return callback({ success: false, message: 'Poll not found' });
             }
-
+    
             // Find the candidate by ID
             const candidate = poll.candidates.find(c => c._id.toString() === candidateID);
-
+    
             if (!candidate) {
                 console.error('Candidate not found.');
-                return;
+                return callback({ success: false, message: 'Candidate not found' });
             }
-
+    
             // Find the participant in the poll's participants array by ID
-            const participant = poll.participants.find(p => p._id.toString() === staffID);
-
+            const participant = poll.participants.find(p => p._id.toString() === userID);
+    
             if (!participant) {
                 console.error('Participant not found in the poll.');
-                return;
+                return callback({ success: false, message: 'Participant not found in the poll' });
             }
-
+    
             // Check if the participant has already voted
             if (participant.voted) {
-                console.error(`Participant ${participantID} has already voted.`);
-                return;
+                console.error(`Participant ${participant._id} has already voted.`);
+                return callback({ success: false, message: 'Participant has already voted' });
             }
-
+    
             // Update the participant's voted status to true
             participant.voted = true;
-
+    
             // Increment the candidate's count
             candidate.count++;
-
+    
             // Save the updated poll
             await poll.save();
-
-            console.log(`Vote cast for candidate ${candidateID} by participant ${participantID}`);
-
+    
+            console.log(`Vote cast for candidate ${candidateID} by participant ${participant._id}`);
+    
             // Notify clients about the change
             emitUpdateUI(pollID);
+    
+            // Return participant data as a success response
+            const participantData = {
+                _id: participant._id,
+                name: participant.name, // Include any other participant data you need
+            };
+    
+            return callback({ success: true, participant: participantData, message: `Vote cast for candidate ${candidateID} by participant ${participant._id}` });
         } catch (error) {
             console.error('Error casting vote:', error);
+            return callback({ success: false, message: 'Error casting vote', });
         }
     });
+    
 
 
 
