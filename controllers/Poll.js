@@ -10,6 +10,7 @@ const createAndSavePoll = async (pollID, pollName) => {
             _id: pollID,
             host: "Avccs",
             name: pollName, // Assuming 'name' is a field in your Poll model
+            ended: false,
         });
 
         // Save the poll to the database

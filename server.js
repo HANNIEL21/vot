@@ -139,7 +139,7 @@ io.on("connection", (socket) => {
 
             if (!poll) {
                 console.error('Poll not found.');
-                callback({success: false, message: `poll with ID: ${pollID} not found`});
+                callback({ success: false, message: `poll with ID: ${pollID} not found` });
                 return;
             }
 
@@ -190,7 +190,6 @@ io.on("connection", (socket) => {
 
 
     socket.on('vote', async ({ pollID, candidateID, userID }, callback) => {
-        console.log(userID);
         try {
             // Find the poll by ID
             const poll = await Poll.findById(pollID);
@@ -198,6 +197,11 @@ io.on("connection", (socket) => {
             if (!poll) {
                 console.error('Poll not found.');
                 return callback({ success: false, message: 'Poll not found' });
+            }
+
+            if (poll.ended) {
+                // Check if the poll has ended
+                return callback({ success: false, message: 'Poll Has Ended' });
             }
 
             // Find the candidate by ID
@@ -245,11 +249,35 @@ io.on("connection", (socket) => {
             return callback({ success: true, participant: participantData, message: `Vote cast for candidate ${candidateID} by participant ${participant._id}` });
         } catch (error) {
             console.error('Error casting vote:', error);
-            return callback({ success: false, message: 'Error casting vote', });
+            return callback({ success: false, message: 'Error casting vote' });
         }
     });
 
+    socket.on('endPoll', async (pollID) => {
+        try {
+            // Find the poll by ID
+            const poll = await Poll.findById(pollID);
 
+            if (!poll) {
+                console.error('Poll not found.');
+                return;
+            }
+
+            // Mark the poll as ended
+            poll.ended = true;
+
+            // Save the updated poll
+            await poll.save();
+
+            console.log(`Poll ${pollID} has ended.`);
+
+            // Emit an event to notify clients that the poll has ended
+            io.to(pollID).emit('pollEnded');
+
+        } catch (error) {
+            console.error('Error ending the poll:', error);
+        }
+    });
 
 
     socket.on('fetchData', async (pollID) => {

@@ -7,6 +7,7 @@ const pollSchema = new Schema(
         _id: { type: String },
         host: { type: String },
         name: { type: String },
+        ended: {type: Boolean, default: false},
         participants: [
             {
                 _id: { type: String, },
